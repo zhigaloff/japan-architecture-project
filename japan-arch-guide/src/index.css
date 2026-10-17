@@ -1,0 +1,15 @@
+/* 1. Импорт стилей карты ОБЯЗАТЕЛЬНО на первой строке */
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+/* 2. Директивы Tailwind */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 3. Растягиваем приложение на весь экран */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
