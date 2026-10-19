@@ -27,7 +27,7 @@ export default function FilterBar({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Поиск по названию, автору, году, стилю..."
-          className="w-full pl-9 pr-8 py-1.5 text-xs bg-white border border-neutral-250 rounded-lg focus:outline-none focus:ring-1 focus:ring-neutral-400 transition"
+          className="w-full pl-9 pr-8 py-1.5 text-xs bg-white border border-neutral-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-neutral-400 transition"
         />
         {searchQuery && (
           <button
@@ -47,7 +47,7 @@ export default function FilterBar({
         <select
           value={selectedRegion}
           onChange={(e) => onRegionChange(e.target.value)}
-          className="text-xs bg-white border border-neutral-250 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-neutral-400 text-neutral-700 truncate"
+          className="text-xs bg-white border border-neutral-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-neutral-400 text-neutral-700 truncate"
         >
           <option value="">Все регионы</option>
           {regions.map((reg) => (
@@ -61,7 +61,7 @@ export default function FilterBar({
         <select
           value={selectedCity}
           onChange={(e) => onCityChange(e.target.value)}
-          className="text-xs bg-white border border-neutral-250 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-neutral-400 text-neutral-700 truncate"
+          className="text-xs bg-white border border-neutral-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-neutral-400 text-neutral-700 truncate"
         >
           <option value="">Все города</option>
           {cities.map((city) => (
@@ -75,7 +75,7 @@ export default function FilterBar({
         <select
           value={selectedStyle}
           onChange={(e) => onStyleChange(e.target.value)}
-          className="text-xs bg-white border border-neutral-250 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-neutral-400 text-neutral-700 truncate"
+          className="text-xs bg-white border border-neutral-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-neutral-400 text-neutral-700 truncate"
         >
           <option value="">Все стили</option>
           {styles.map((st) => (

@@ -1,28 +1,43 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   X, MapPin, Calendar, Compass, ShieldCheck, Train, Info, User, 
-  ImageOff, ChevronLeft, ChevronRight 
+  ImageOff, ChevronLeft, ChevronRight, ExternalLink 
 } from 'lucide-react';
 
 export default function DetailPanel({ place, onClose }) {
   const [imageError, setImageError] = useState(false);
   const [activePhotoIndex, setActivePhotoIndex] = useState(null); // индекс текущего фото в слайдере
+  const [currentCover, setCurrentCover] = useState(null);
 
   const props = place?.properties || {};
 
-  // Формируем надежный путь к обложке
-  const coverSrc = useMemo(() => {
-    if (!props.cover_image) return null;
-    return props.cover_image.includes('/')
+  // Формируем надежный путь к обложке с автоматическим запасным вариантом
+  useEffect(() => {
+    setImageError(false);
+    setActivePhotoIndex(null);
+    if (!props.cover_image) {
+      setCurrentCover(props.id ? `/images/${props.id}/01-facade.jpg` : null);
+      return;
+    }
+    const initial = props.cover_image.includes('/')
       ? `/${props.cover_image}`
       : `/images/${props.id}/${props.cover_image}`;
-  }, [props.cover_image, props.id]);
+    setCurrentCover(initial);
+  }, [props.id, props.cover_image]);
+
+  const handleCoverError = () => {
+    if (currentCover && !currentCover.endsWith('01-facade.jpg')) {
+      setCurrentCover(`/images/${props.id}/01-facade.jpg`);
+    } else {
+      setImageError(true);
+    }
+  };
 
   // Собираем массив всех доступных фото объекта (обложка + галерея)
   const allPhotos = useMemo(() => {
     const list = [];
-    if (coverSrc && !imageError) {
-      list.push(coverSrc);
+    if (currentCover && !imageError) {
+      list.push(currentCover);
     }
     if (props.gallery_images) {
       props.gallery_images
@@ -30,17 +45,25 @@ export default function DetailPanel({ place, onClose }) {
         .map((img) => img.trim())
         .filter(Boolean)
         .forEach((img) => {
-          list.push(`/images/${props.id}/${img}`);
+          const photoPath = `/images/${props.id}/${img}`;
+          if (!list.includes(photoPath)) {
+            list.push(photoPath);
+          }
         });
     }
     return list;
-  }, [coverSrc, imageError, props.gallery_images, props.id]);
+  }, [currentCover, imageError, props.gallery_images, props.id]);
 
-  // Сброс состояний при смене объекта
-  useEffect(() => {
-    setImageError(false);
-    setActivePhotoIndex(null);
-  }, [props.id]);
+  // Координаты для перехода на Google Maps
+  const googleMapsUrl = useMemo(() => {
+    const coords = place?.geometry?.coordinates;
+    if (coords && Array.isArray(coords) && coords.length >= 2) {
+      const lng = coords[0];
+      const lat = coords[1];
+      return `https://www.google.com/maps?q=${lat},${lng}`;
+    }
+    return null;
+  }, [place]);
 
   // Перелистывание вперед / назад
   const handlePrevPhoto = useCallback((e) => {
@@ -71,8 +94,20 @@ export default function DetailPanel({ place, onClose }) {
 
   return (
     <>
-      <div className="absolute top-0 right-0 h-full w-full sm:w-[480px] bg-white shadow-2xl z-20 flex flex-col border-l border-neutral-200">
+      {/* Затемняющий фон на мобильных для закрытия по тапу */}
+      <div 
+        className="fixed inset-0 bg-black/35 backdrop-blur-[1px] z-30 md:hidden"
+        onClick={onClose}
+      />
+
+      {/* Панель: снизу на мобильных, справа на десктопе */}
+      <div className="fixed inset-x-0 bottom-0 md:bottom-auto md:top-0 md:right-0 md:left-auto h-[88vh] md:h-full w-full md:w-[440px] lg:w-[480px] bg-white shadow-2xl z-40 flex flex-col rounded-t-2xl md:rounded-none border-t md:border-t-0 md:border-l border-neutral-200">
         
+        {/* Ручка шторки для смартфонов */}
+        <div className="md:hidden pt-2.5 pb-1 flex justify-center cursor-pointer select-none" onClick={onClose}>
+          <div className="w-10 h-1 bg-neutral-300 rounded-full" />
+        </div>
+
         {/* Шапка */}
         <div className="p-4 border-b border-neutral-150 flex items-center justify-between bg-white/95 backdrop-blur-sm sticky top-0 z-10">
           <div>
@@ -97,15 +132,15 @@ export default function DetailPanel({ place, onClose }) {
           {/* Главная обложка */}
           <div 
             className="w-full h-64 bg-neutral-100 relative overflow-hidden flex items-center justify-center border-b border-neutral-100 cursor-pointer group"
-            onClick={() => coverSrc && !imageError && setActivePhotoIndex(0)}
+            onClick={() => currentCover && !imageError && setActivePhotoIndex(0)}
           >
-            {coverSrc && !imageError ? (
+            {currentCover && !imageError ? (
               <>
                 <img
-                  src={coverSrc}
+                  src={currentCover}
                   alt={props.name_ru || ''}
                   className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                  onError={() => setImageError(true)}
+                  onError={handleCoverError}
                 />
                 <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-medium">
                   Открыть просмотр фото
@@ -186,12 +221,28 @@ export default function DetailPanel({ place, onClose }) {
 
             {/* Локация и станция */}
             <div className="space-y-2 text-xs border-b border-neutral-100 pb-4 text-neutral-700">
-              <div className="flex items-start gap-2">
-                <MapPin size={15} className="text-neutral-400 flex-shrink-0 mt-0.5" />
-                <span>
-                  {props.region ? `${props.region}, ` : ''}{props.city}{props.district ? ` • ${props.district}` : ''}
-                </span>
-              </div>
+              {googleMapsUrl ? (
+                <a
+                  href={googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-start gap-2 p-1 -ml-1 rounded-md hover:bg-neutral-100 text-neutral-700 hover:text-neutral-900 transition"
+                  title="Открыть эту точку на Google Maps (откроется в новой вкладке)"
+                >
+                  <MapPin size={15} className="text-neutral-400 group-hover:text-red-500 flex-shrink-0 mt-0.5 transition-colors" />
+                  <span className="group-hover:underline underline-offset-2 flex-1">
+                    {props.region ? `${props.region}, ` : ''}{props.city}{props.district ? ` • ${props.district}` : ''}
+                  </span>
+                  <ExternalLink size={13} className="text-neutral-400 group-hover:text-neutral-700 flex-shrink-0 mt-0.5 opacity-60 group-hover:opacity-100 transition" />
+                </a>
+              ) : (
+                <div className="flex items-start gap-2">
+                  <MapPin size={15} className="text-neutral-400 flex-shrink-0 mt-0.5" />
+                  <span>
+                    {props.region ? `${props.region}, ` : ''}{props.city}{props.district ? ` • ${props.district}` : ''}
+                  </span>
+                </div>
+              )}
 
               {props.nearest_station && (
                 <div className="flex items-start gap-2">
